@@ -1,10 +1,11 @@
-package com.czy.surroundcrazycat.View;
+package me.jarkimzhu.surroundcrazycat.views;
 
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
 
+import android.app.Activity;
 import android.app.AlertDialog.Builder;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -21,8 +22,13 @@ import android.view.SurfaceHolder.Callback;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnTouchListener;
+import android.widget.Toast;
 
-import com.czy.surroundcrazycat.R;
+import androidx.core.util.Consumer;
+
+import cn.winapk.sdk.WinApk;
+import cn.winapk.sdk.views.helper.ViewHelper;
+import me.jarkimzhu.surroundcrazycat.R;
 
 public class GameView extends SurfaceView implements OnTouchListener {
 
@@ -358,11 +364,26 @@ public class GameView extends SurfaceView implements OnTouchListener {
         dialog.setCancelable(false);
         dialog.setNegativeButton("再玩一次", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
-                initGame();
-                canMove = true;
+                WinApk.INSTANCE.showFullScreenVideo(getContext(), "test-001", new Consumer<Boolean>() {
+                    @Override
+                    public void accept(Boolean aBoolean) {
+                        if (!aBoolean) {
+                            initGame();
+                            canMove = true;
+                        }
+                    }
+                });
             }
         });
-        dialog.setPositiveButton("取消", null);
+        dialog.setPositiveButton("取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Activity activity = ViewHelper.INSTANCE.getActivityFromView(GameView.this);
+                if (activity != null) {
+                    activity.finish();
+                }
+            }
+        });
         dialog.show();
     }
 

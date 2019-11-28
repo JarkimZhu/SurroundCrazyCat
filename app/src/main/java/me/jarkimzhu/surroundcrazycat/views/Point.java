@@ -1,4 +1,4 @@
-package com.czy.surroundcrazycat.View;
+package me.jarkimzhu.surroundcrazycat.views;
 
 public class Point {
 
