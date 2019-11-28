@@ -31,12 +31,17 @@ allprojects {
         }
         jcenter()
         google()
-//        maven {
-//            url = "https://raw.githubusercontent.com/JarkimZhu/maven-snapshot/master/Repository"
-//        }
+        maven {
+            url = "https://raw.githubusercontent.com/JarkimZhu/maven-snapshot/master/Repository"
+        }
     }
 }
 
 task clean(type: Delete) {
     delete rootProject.buildDir
+}
+
+task refreshSdk(type: Delete) {
+    delete "/home/jarkimzhu/.gradle/caches/modules-2/files-2.1/cn.winapk.sdk"
+    delete "/home/jarkimzhu/.gradle/caches/modules-2/metadata-2.71/descriptors/cn.winapk.sdk"
 }

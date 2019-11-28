@@ -22,12 +22,5 @@ public class GameActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
-
-        WinApk.INSTANCE.setAdCallback(new IAdCallback() {
-            @Override
-            public void onEvent(@NotNull String slotId, @NotNull Event event, @Nullable Object data) {
-
-            }
-        });
     }
 }

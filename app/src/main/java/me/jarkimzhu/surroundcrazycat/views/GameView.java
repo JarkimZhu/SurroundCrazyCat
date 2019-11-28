@@ -26,8 +26,13 @@ import android.widget.Toast;
 
 import androidx.core.util.Consumer;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import cn.winapk.sdk.IAdCallback;
 import cn.winapk.sdk.WinApk;
 import cn.winapk.sdk.views.helper.ViewHelper;
+import me.jarkimzhu.advertisement.Event;
 import me.jarkimzhu.surroundcrazycat.R;
 
 public class GameView extends SurfaceView implements OnTouchListener {
@@ -42,8 +47,6 @@ public class GameView extends SurfaceView implements OnTouchListener {
     private int SCREEN_WIDTH;
     // 每个通道的宽度
     private int WIDTH;
-    // 奇数行和偶数行通道间的位置偏差量
-    private int DISTANCE;
     // 屏幕顶端和通道最顶端间的距离
     private int OFFSET;
     // 整个通道与屏幕两端间的距离
@@ -61,14 +64,15 @@ public class GameView extends SurfaceView implements OnTouchListener {
 
     private Timer timer;
 
-    private TimerTask timerttask;
-
     private Context context;
 
     //行走的步数
     private int steps;
 
     private boolean canMove = true;
+
+    private int winCount;
+    private boolean waitingAd;
 
     private int[] images = {R.drawable.cat1, R.drawable.cat2, R.drawable.cat3,
             R.drawable.cat4, R.drawable.cat5, R.drawable.cat6, R.drawable.cat7,
@@ -80,19 +84,31 @@ public class GameView extends SurfaceView implements OnTouchListener {
         super(context);
         matrix = new Point[ROW][COL];
 
-        if (Build.VERSION.SDK_INT < 21) {
-            cat_drawable = getResources().getDrawable(images[index]);
-            background = getResources().getDrawable(R.drawable.bg);
-        } else {
-            cat_drawable = getResources().getDrawable(images[index], null);
-            background = getResources().getDrawable(R.drawable.bg, null);
-        }
+        cat_drawable = getResources().getDrawable(images[index], null);
+        background = getResources().getDrawable(R.drawable.bg, null);
         this.context = context;
         initGame();
         getHolder().addCallback(callback);
         setOnTouchListener(this);
         this.setFocusable(true);
         this.setFocusableInTouchMode(true);
+
+        WinApk.INSTANCE.setAdCallback(new IAdCallback() {
+            @Override
+            public void onEvent(@NotNull String slotId, @NotNull Event event, @Nullable Object data) {
+                if (event == Event.VD_CLOSE) {
+                    post(new Runnable() {
+                        @Override
+                        public void run() {
+                            initGame();
+                            canMove = true;
+                            waitingAd = false;
+                            winCount = 0;
+                        }
+                    });
+                }
+            }
+        });
     }
 
     // 初始化游戏
@@ -123,51 +139,54 @@ public class GameView extends SurfaceView implements OnTouchListener {
     // 绘图
     private void redraw() {
         Canvas canvas = getHolder().lockCanvas();
-        canvas.drawColor(Color.rgb(0, 0x8c, 0xd7));
-        Paint paint = new Paint();
-        paint.setFlags(Paint.ANTI_ALIAS_FLAG);
-        for (int i = 0; i < ROW; i++) {
-            for (int j = 0; j < COL; j++) {
-                DISTANCE = 0;
-                if (i % 2 != 0) {
-                    DISTANCE = WIDTH / 2;
+        if (canvas != null) {
+            canvas.drawColor(Color.rgb(0, 0x8c, 0xd7));
+            Paint paint = new Paint();
+            paint.setFlags(Paint.ANTI_ALIAS_FLAG);
+            for (int i = 0; i < ROW; i++) {
+                for (int j = 0; j < COL; j++) {
+                    // 奇数行和偶数行通道间的位置偏差量
+                    int DISTANCE = 0;
+                    if (i % 2 != 0) {
+                        DISTANCE = WIDTH / 2;
+                    }
+                    Point dot = getDot(j, i);
+                    switch (dot.getStatus()) {
+                        case STATUS_IN:
+                            paint.setColor(0XFFEEEEEE);
+                            break;
+                        case STATUS_ON:
+                            paint.setColor(0XFFFFAA00);
+                            break;
+                        case STATUS_OFF:
+                            paint.setColor(0X74000000);
+                            break;
+                        default:
+                            break;
+                    }
+                    canvas.drawOval(new RectF(dot.getX() * WIDTH + DISTANCE
+                            + length, dot.getY() * WIDTH + OFFSET, (dot.getX() + 1)
+                            * WIDTH + DISTANCE + length, (dot.getY() + 1) * WIDTH
+                            + OFFSET), paint);
                 }
-                Point dot = getDot(j, i);
-                switch (dot.getStatus()) {
-                    case STATUS_IN:
-                        paint.setColor(0XFFEEEEEE);
-                        break;
-                    case STATUS_ON:
-                        paint.setColor(0XFFFFAA00);
-                        break;
-                    case STATUS_OFF:
-                        paint.setColor(0X74000000);
-                        break;
-                    default:
-                        break;
-                }
-                canvas.drawOval(new RectF(dot.getX() * WIDTH + DISTANCE
-                        + length, dot.getY() * WIDTH + OFFSET, (dot.getX() + 1)
-                        * WIDTH + DISTANCE + length, (dot.getY() + 1) * WIDTH
-                        + OFFSET), paint);
             }
+            int left;
+            int top;
+            if (cat.getY() % 2 == 0) {
+                left = cat.getX() * WIDTH;
+                top = cat.getY() * WIDTH;
+            } else {
+                left = (WIDTH / 2) + cat.getX() * WIDTH;
+                top = cat.getY() * WIDTH;
+            }
+            // 此处神经猫图片的位置是根据效果图来调整的
+            cat_drawable.setBounds(left - WIDTH / 6 + length, top - WIDTH / 2
+                    + OFFSET, left + WIDTH + length, top + WIDTH + OFFSET);
+            cat_drawable.draw(canvas);
+            background.setBounds(0, 0, SCREEN_WIDTH, OFFSET);
+            background.draw(canvas);
+            getHolder().unlockCanvasAndPost(canvas);
         }
-        int left;
-        int top;
-        if (cat.getY() % 2 == 0) {
-            left = cat.getX() * WIDTH;
-            top = cat.getY() * WIDTH;
-        } else {
-            left = (WIDTH / 2) + cat.getX() * WIDTH;
-            top = cat.getY() * WIDTH;
-        }
-        // 此处神经猫图片的位置是根据效果图来调整的
-        cat_drawable.setBounds(left - WIDTH / 6 + length, top - WIDTH / 2
-                + OFFSET, left + WIDTH + length, top + WIDTH + OFFSET);
-        cat_drawable.draw(canvas);
-        background.setBounds(0, 0, SCREEN_WIDTH, OFFSET);
-        background.draw(canvas);
-        getHolder().unlockCanvasAndPost(canvas);
     }
 
     Callback callback = new Callback() {
@@ -191,12 +210,12 @@ public class GameView extends SurfaceView implements OnTouchListener {
     // 开启定时任务
     private void startTimer() {
         timer = new Timer();
-        timerttask = new TimerTask() {
+        TimerTask timerTask = new TimerTask() {
             public void run() {
                 gifImage();
             }
         };
-        timer.schedule(timerttask, 50, 65);
+        timer.schedule(timerTask, 50, 65);
     }
 
     // 停止定时任务
@@ -211,11 +230,7 @@ public class GameView extends SurfaceView implements OnTouchListener {
         if (index > images.length - 1) {
             index = 0;
         }
-        if (Build.VERSION.SDK_INT < 21) {
-            cat_drawable = getResources().getDrawable(images[index]);
-        } else {
-            cat_drawable = getResources().getDrawable(images[index], null);
-        }
+        cat_drawable = getResources().getDrawable(images[index], null);
         redraw();
     }
 
@@ -226,11 +241,8 @@ public class GameView extends SurfaceView implements OnTouchListener {
 
     // 判断神经猫是否处于边界
     private boolean inEdge(Point dot) {
-        if (dot.getX() * dot.getY() == 0 || dot.getX() + 1 == COL
-                || dot.getY() + 1 == ROW) {
-            return true;
-        }
-        return false;
+        return dot.getX() * dot.getY() == 0 || dot.getX() + 1 == COL
+                || dot.getY() + 1 == ROW;
     }
 
     // 移动cat至指定点
@@ -358,6 +370,7 @@ public class GameView extends SurfaceView implements OnTouchListener {
 
     // 通关失败
     private void failure() {
+        waitingAd = true;
         Builder dialog = new Builder(context);
         dialog.setTitle("通关失败");
         dialog.setMessage("你让神经猫逃出精神院啦(ˉ▽ˉ；)...");
@@ -368,18 +381,26 @@ public class GameView extends SurfaceView implements OnTouchListener {
                     @Override
                     public void accept(Boolean aBoolean) {
                         if (!aBoolean) {
-                            initGame();
-                            canMove = true;
+                            post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    initGame();
+                                    canMove = true;
+                                    waitingAd = false;
+                                }
+                            });
                         }
                     }
                 });
             }
         });
+
         dialog.setPositiveButton("取消", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Activity activity = ViewHelper.INSTANCE.getActivityFromView(GameView.this);
                 if (activity != null) {
+                    stopTimer();
                     activity.finish();
                 }
             }
@@ -395,8 +416,12 @@ public class GameView extends SurfaceView implements OnTouchListener {
         dialog.setCancelable(false);
         dialog.setNegativeButton("再玩一次", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
-                initGame();
-                canMove = true;
+                if (++winCount >= 3) {
+                    Toast.makeText(context, "歇息以下，看个广告继续吧～", Toast.LENGTH_LONG).show();
+                } else {
+                    initGame();
+                    canMove = true;
+                }
             }
         });
         dialog.setPositiveButton("取消", null);
@@ -428,8 +453,12 @@ public class GameView extends SurfaceView implements OnTouchListener {
             if (x + 1 > COL || y + 1 > ROW) {
                 return true;
             } else if (inEdge(cat) || !canMove) {
-                initGame();
-                canMove = true;
+                if (!waitingAd) {
+                    initGame();
+                    canMove = true;
+                } else {
+                    Toast.makeText(context, "请观看后广告再来一局吧～", Toast.LENGTH_LONG).show();
+                }
                 return true;
             } else if (getDot(x, y).getStatus() == Point.STATUS.STATUS_OFF) {
                 getDot(x, y).setStatus(Point.STATUS.STATUS_ON);
