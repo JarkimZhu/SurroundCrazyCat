@@ -3,13 +3,9 @@ package me.jarkimzhu.surroundcrazycat.activities;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.util.Consumer;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import cn.winapk.sdk.IAdCallback;
 import cn.winapk.sdk.WinApk;
-import me.jarkimzhu.advertisement.Event;
 import me.jarkimzhu.surroundcrazycat.views.GameView;
 
 public class GameActivity extends AppCompatActivity {
@@ -22,5 +18,6 @@ public class GameActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
+        WinApk.INSTANCE.requestAllSdkPermissions(this, null);
     }
 }
