@@ -1,10 +1,5 @@
 package me.jarkimzhu.surroundcrazycat.views;
 
-import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.Vector;
-
 import android.app.Activity;
 import android.app.AlertDialog.Builder;
 import android.content.Context;
@@ -14,7 +9,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -24,10 +18,13 @@ import android.view.View;
 import android.view.View.OnTouchListener;
 import android.widget.Toast;
 
-import androidx.core.util.Consumer;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.Vector;
 
 import cn.winapk.sdk.IAdCallback;
 import cn.winapk.sdk.WinApk;
@@ -92,23 +89,6 @@ public class GameView extends SurfaceView implements OnTouchListener {
         setOnTouchListener(this);
         this.setFocusable(true);
         this.setFocusableInTouchMode(true);
-
-        WinApk.INSTANCE.setAdCallback(new IAdCallback() {
-            @Override
-            public void onEvent(@NotNull String slotId, @NotNull Event event, @Nullable Object data) {
-                if (event == Event.VD_CLOSE) {
-                    post(new Runnable() {
-                        @Override
-                        public void run() {
-                            initGame();
-                            canMove = true;
-                            waitingAd = false;
-                            winCount = 0;
-                        }
-                    });
-                }
-            }
-        });
     }
 
     // 初始化游戏
@@ -377,21 +357,7 @@ public class GameView extends SurfaceView implements OnTouchListener {
         dialog.setCancelable(false);
         dialog.setNegativeButton("再玩一次", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
-                WinApk.INSTANCE.showFullScreenVideo(getContext(), "test-001", new Consumer<Boolean>() {
-                    @Override
-                    public void accept(Boolean aBoolean) {
-                        if (!aBoolean) {
-                            post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    initGame();
-                                    canMove = true;
-                                    waitingAd = false;
-                                }
-                            });
-                        }
-                    }
-                });
+                showFullScreenVideo();
             }
         });
 
@@ -418,6 +384,7 @@ public class GameView extends SurfaceView implements OnTouchListener {
             public void onClick(DialogInterface dialog, int which) {
                 if (++winCount >= 3) {
                     Toast.makeText(context, "歇息以下，看个广告继续吧～", Toast.LENGTH_LONG).show();
+                    showFullScreenVideo();
                 } else {
                     initGame();
                     canMove = true;
@@ -426,6 +393,24 @@ public class GameView extends SurfaceView implements OnTouchListener {
         });
         dialog.setPositiveButton("取消", null);
         dialog.show();
+    }
+
+    private void showFullScreenVideo() {
+        WinApk.INSTANCE.showFullScreenVideo(getContext(), "demo-video", new IAdCallback() {
+            @Override
+            public void onEvent(@NotNull String s, @NotNull Event event, @Nullable Object o) {
+                if (event == Event.AD_ERROR) {
+                    initGame();
+                    canMove = true;
+                    waitingAd = false;
+                } else if(event == Event.VD_CLOSE) {
+                    initGame();
+                    canMove = true;
+                    waitingAd = false;
+                    winCount = 0;
+                }
+            }
+        });
     }
 
     // 触屏事件
