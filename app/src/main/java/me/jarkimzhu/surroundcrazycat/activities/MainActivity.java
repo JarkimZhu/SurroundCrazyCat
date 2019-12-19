@@ -6,7 +6,6 @@ import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import cn.winapk.sdk.WinApk;
 import me.jarkimzhu.surroundcrazycat.R;
 
 
@@ -19,8 +18,6 @@ public class MainActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
-
-        WinApk.INSTANCE.init(this, new WinApk.Options("p-test"), null);
     }
 
     public void onClick(View view) {
