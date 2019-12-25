@@ -7,6 +7,6 @@
 /build
 /captures
 
-.idea/caches/
+.idea/
 
-.idea/misc.xml
+*/release/
