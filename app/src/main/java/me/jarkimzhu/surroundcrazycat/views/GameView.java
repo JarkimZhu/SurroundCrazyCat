@@ -131,23 +131,25 @@ public class GameView extends SurfaceView implements OnTouchListener {
                         DISTANCE = WIDTH / 2;
                     }
                     Point dot = getDot(j, i);
-                    switch (dot.getStatus()) {
-                        case STATUS_IN:
-                            paint.setColor(0XFFEEEEEE);
-                            break;
-                        case STATUS_ON:
-                            paint.setColor(0XFFFFAA00);
-                            break;
-                        case STATUS_OFF:
-                            paint.setColor(0X74000000);
-                            break;
-                        default:
-                            break;
+                    if (dot != null) {
+                        switch (dot.getStatus()) {
+                            case STATUS_IN:
+                                paint.setColor(0XFFEEEEEE);
+                                break;
+                            case STATUS_ON:
+                                paint.setColor(0XFFFFAA00);
+                                break;
+                            case STATUS_OFF:
+                                paint.setColor(0X74000000);
+                                break;
+                            default:
+                                break;
+                        }
+                        canvas.drawOval(new RectF(dot.getX() * WIDTH + DISTANCE
+                                + length, dot.getY() * WIDTH + OFFSET, (dot.getX() + 1)
+                                * WIDTH + DISTANCE + length, (dot.getY() + 1) * WIDTH
+                                + OFFSET), paint);
                     }
-                    canvas.drawOval(new RectF(dot.getX() * WIDTH + DISTANCE
-                            + length, dot.getY() * WIDTH + OFFSET, (dot.getX() + 1)
-                            * WIDTH + DISTANCE + length, (dot.getY() + 1) * WIDTH
-                            + OFFSET), paint);
                 }
             }
             int left;
@@ -396,7 +398,7 @@ public class GameView extends SurfaceView implements OnTouchListener {
     }
 
     private void showFullScreenVideo() {
-        WinApk.INSTANCE.showFullScreenVideo(getContext(), "demo-video", new IAdCallback() {
+        WinApk.INSTANCE.showFullScreenVideo(getContext(), "test-001", new IAdCallback() {
             @Override
             public void onEvent(@NotNull String s, @NotNull Event event, @Nullable Object o) {
                 if (event == Event.AD_ERROR) {
